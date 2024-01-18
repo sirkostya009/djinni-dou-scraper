@@ -8,13 +8,13 @@ import (
 	"time"
 )
 
-func htmlUlScraper(page int, url, selector string, callback func(*colly.HTMLElement) string) {
-	s := make([]string, page)
+func htmlUlScraper(elementsPerPage int, url, selector string, callback func(*colly.HTMLElement) string) {
+	s := make([]string, elementsPerPage)
 	c := colly.NewCollector(colly.UserAgent(
 		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
-	))
+	), colly.AllowURLRevisit())
 	c.OnHTML(selector, func(e *colly.HTMLElement) {
-		c := make([]string, page)
+		c := make([]string, elementsPerPage)
 		copy(c, s)
 		e.ForEach("li", func(i int, e *colly.HTMLElement) {
 			s[i] = callback(e)
@@ -29,15 +29,13 @@ func htmlUlScraper(page int, url, selector string, callback func(*colly.HTMLElem
 		}
 	})
 	for {
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println("Scraping " + url + " ...")
+		fmt.Println("\n\nScraping " + url + " ...")
+		fmt.Println(time.Now().Format("15:04:05"))
 		err := c.Visit(url)
 		if err != nil {
 			fmt.Printf("Failed to scrape %s %v\n", url, err)
 		}
-		time.Sleep(15 * time.Minute)
+		time.Sleep(10 * time.Minute)
 	}
 }
 
@@ -57,7 +55,7 @@ func main() {
 			return fmt.Sprintf("%s%s\n%s", title, strings.Join(metadata, ","), url)
 		},
 	)
-	time.Sleep(2 * time.Second)
+	time.Sleep(2 * time.Second) // a little delay so that the output is not mixed
 	go htmlUlScraper(
 		20,
 		"https://jobs.dou.ua/vacancies/?category=Java",
