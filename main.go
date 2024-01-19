@@ -3,10 +3,14 @@ package main
 import (
 	"fmt"
 	"github.com/gocolly/colly"
+	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
+
+var sleepingTime time.Duration
 
 func htmlUlScraper(elementsPerPage int, url, selector string, callback func(*colly.HTMLElement) string) {
 	s := make([]string, elementsPerPage)
@@ -19,11 +23,8 @@ func htmlUlScraper(elementsPerPage int, url, selector string, callback func(*col
 		e.ForEach("li", func(i int, e *colly.HTMLElement) {
 			s[i] = callback(e)
 		})
-		if c[0] != s[0] {
-			for _, v := range s {
-				if slices.Contains(c, v) {
-					break
-				}
+		for _, v := range s {
+			if !slices.Contains(c, v) {
 				fmt.Println(v)
 			}
 		}
@@ -35,11 +36,21 @@ func htmlUlScraper(elementsPerPage int, url, selector string, callback func(*col
 		if err != nil {
 			fmt.Printf("Failed to scrape %s %v\n", url, err)
 		}
-		time.Sleep(10 * time.Minute)
+		time.Sleep(sleepingTime * time.Minute)
 	}
 }
 
 func main() {
+	if len(os.Args) < 2 {
+		fmt.Println("Please specify the sleeping time in minutes")
+		return
+	}
+	if timing, err := strconv.Atoi(os.Args[1]); err != nil {
+		fmt.Println("Please specify as an integer, example: 10")
+		return
+	} else {
+		sleepingTime = time.Duration(timing)
+	}
 	go htmlUlScraper(
 		15,
 		"https://djinni.co/jobs/?primary_keyword=JavaScript&primary_keyword=Fullstack&primary_keyword=Java&primary_keyword=Golang&exp_level=no_exp&exp_level=1y&exp_level=2y",
