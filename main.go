@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gocolly/colly"
 	"os"
@@ -12,22 +13,46 @@ import (
 
 var sleepingTime time.Duration
 
-func htmlUlScraper(elementsPerPage int, url, selector string, callback func(*colly.HTMLElement) string) {
-	s := make([]string, elementsPerPage)
+func serialize(filename string, jobs []string) {
+	b, err := json.Marshal(jobs)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	_ = os.WriteFile(filename, b, 0644)
+}
+
+func deserialize(filename string) []string {
+	b, err := os.ReadFile(filename)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	var jobs []string
+	err = json.Unmarshal(b, &jobs)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	return jobs
+}
+
+func htmlUlScraper(name, url, selector string, callback func(*colly.HTMLElement) string) {
+	s := deserialize(name)
 	c := colly.NewCollector(colly.UserAgent(
 		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
 	), colly.AllowURLRevisit())
 	c.OnHTML(selector, func(e *colly.HTMLElement) {
-		c := make([]string, elementsPerPage)
-		copy(c, s)
+		c := make([]string, 0, len(s))
 		e.ForEach("li", func(i int, e *colly.HTMLElement) {
-			s[i] = callback(e)
+			c = append(c, callback(e))
 		})
-		for _, v := range s {
-			if !slices.Contains(c, v) {
+		for _, v := range c {
+			if !slices.Contains(s, v) {
 				fmt.Println(v)
 			}
 		}
+		s = c
 	})
 	for {
 		fmt.Println("\n\nScraping " + url + " ...")
@@ -36,6 +61,7 @@ func htmlUlScraper(elementsPerPage int, url, selector string, callback func(*col
 		if err != nil {
 			fmt.Printf("Failed to scrape %s %v\n", url, err)
 		}
+		go serialize(name, s)
 		time.Sleep(sleepingTime * time.Minute)
 	}
 }
@@ -52,7 +78,7 @@ func main() {
 		sleepingTime = time.Duration(timing)
 	}
 	go htmlUlScraper(
-		15,
+		"djinni.json",
 		"https://djinni.co/jobs/?primary_keyword=JavaScript&primary_keyword=Fullstack&primary_keyword=Java&primary_keyword=Golang&exp_level=no_exp&exp_level=1y&exp_level=2y",
 		".list-unstyled",
 		func(e *colly.HTMLElement) string {
@@ -68,7 +94,7 @@ func main() {
 	)
 	time.Sleep(2 * time.Second) // a little delay so that the output is not mixed
 	go htmlUlScraper(
-		20,
+		"dou.json",
 		"https://jobs.dou.ua/vacancies/?category=Java",
 		".lt",
 		func(e *colly.HTMLElement) string {
