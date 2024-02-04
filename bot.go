@@ -69,7 +69,7 @@ func cancelHandler(bot *telego.Bot, message telego.Message) {
 	}
 }
 
-var urlRegex = regexp.MustCompile(`https://(djinni\.co|jobs\.dou\.ua)/(jobs|vacancies)/\?([a-zA-Z_-]+=[.0-9a-zA-Z]+&?)+`)
+var urlRegex = regexp.MustCompile(`https://(djinni\.co|jobs\.dou\.ua)/(jobs|vacancies)/\?([a-zA-Z_-]+=[_.0-9a-zA-Z]+&?)+`)
 
 func addMessage(bot *telego.Bot, message telego.Message) {
 	var response string
