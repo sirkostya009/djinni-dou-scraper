@@ -182,8 +182,7 @@ func listHandler(bot *telego.Bot, message telego.Message) {
 }
 
 func stopHandler(bot *telego.Bot, update telego.Update) {
-	fmt.Println(update)
-	err := deleteSubscriptionsByChatId(update.Message.Chat.ID)
+	err := deleteSubscriptionsByChatId(update.MyChatMember.Chat.ID)
 	if err != nil {
 		bot.Logger().Errorf("Failed to delete subscriptions: %v", err)
 	}
