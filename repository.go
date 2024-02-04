@@ -17,7 +17,7 @@ type Subscription struct {
 	Data        []string `json:"data"`
 }
 
-func mongoConnect() {
+func initMongo() {
 	url := os.Getenv("MONGO_URL")
 	if url == "" {
 		url = "mongodb://localhost:27017"
@@ -29,38 +29,13 @@ func mongoConnect() {
 	subscriptions = db.Database("job-scraper").Collection("subscriptions")
 }
 
-func findByUrl(url string) (*Subscription, error) {
-	sub := &Subscription{}
-	return sub, subscriptions.FindOne(context.Background(), bson.M{"url": url}).Decode(sub)
+func findByUrl(url string) (Subscription, error) {
+	sub := Subscription{}
+	return sub, subscriptions.FindOne(context.Background(), bson.M{"url": url}).Decode(&sub)
 }
 
 func updateSubscription(sub Subscription) (*mongo.UpdateResult, error) {
 	return subscriptions.UpdateOne(context.Background(), bson.M{"url": sub.Url}, bson.M{"$set": sub}, options.Update().SetUpsert(true))
-}
-
-type subIterator struct {
-	cursor *mongo.Cursor
-}
-
-func (i *subIterator) Next() bool {
-	return i.cursor.Next(context.Background())
-}
-
-func (i *subIterator) Get() (Subscription, error) {
-	var sub Subscription
-	return sub, i.cursor.Decode(&sub)
-}
-
-func (i *subIterator) Close() error {
-	return i.cursor.Close(context.Background())
-}
-
-func iterateSubscriptions() *subIterator {
-	cursor, err := subscriptions.Find(context.Background(), bson.M{})
-	if err != nil {
-		return nil
-	}
-	return &subIterator{cursor}
 }
 
 func listSubscriptions(id int64) []Subscription {
