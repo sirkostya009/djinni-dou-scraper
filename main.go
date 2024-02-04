@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	"os"
@@ -9,7 +8,7 @@ import (
 
 func main() {
 	initMongo()
-	bot := createBot(telego.WithDefaultDebugLogger())
+	bot := createBot()
 	webhookEndpoint := "/" + bot.Token()
 
 	err := bot.SetWebhook(&telego.SetWebhookParams{
@@ -18,8 +17,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println(bot.GetWebhookInfo())
 
 	updates, err := bot.UpdatesViaWebhook(webhookEndpoint)
 	if err != nil {
@@ -40,7 +37,7 @@ func main() {
 
 	go bh.Start()
 	defer bh.Stop()
-	_ = bot.StartWebhook("0.0.0.0:443")
+	_ = bot.StartWebhook("0.0.0.0:" + os.Getenv("PORT"))
 	_ = bot.StopWebhook()
 	_ = bot.DeleteWebhook(&telego.DeleteWebhookParams{})
 }
