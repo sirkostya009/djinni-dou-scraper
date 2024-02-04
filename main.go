@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	"os"
@@ -12,11 +13,13 @@ func main() {
 	webhookEndpoint := "/" + bot.Token()
 
 	err := bot.SetWebhook(&telego.SetWebhookParams{
-		URL: os.Getenv("WEBHOOK_URL") + webhookEndpoint,
+		URL: "https://" + os.Getenv("WEBHOOK_URL") + webhookEndpoint,
 	})
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println(bot.GetWebhookInfo())
 
 	updates, err := bot.UpdatesViaWebhook(webhookEndpoint)
 	if err != nil {
@@ -36,6 +39,7 @@ func main() {
 	bh.HandleMessage(listHandler, th.CommandEqual("list"))
 
 	go bh.Start()
+	defer bh.Stop()
 	_ = bot.StartWebhook("0.0.0.0:443")
 	_ = bot.StopWebhook()
 	_ = bot.DeleteWebhook(&telego.DeleteWebhookParams{})
