@@ -86,10 +86,23 @@ func addMessage(bot *telego.Bot, message telego.Message) {
 		return
 	}
 	sub, _ := findByUrl(url)
+	sub.Subscribers = append(sub.Subscribers, chatId.ID)
 	if sub.Url == "" {
 		sub.Url = url
+		go func(sub *Subscription) {
+			var s scraper
+			var selector string
+			switch {
+			case strings.Contains(url, "djinni.co"):
+				s, selector = djinniCrawler, ".list-unstyled"
+			case strings.Contains(url, "jobs.dou.ua"):
+				s, selector = douCrawler, ".lt"
+			}
+			sub.Data = htmlUlScraper(sub.Url, selector, s)
+
+			_, _ = updateSubscription(*sub)
+		}(&sub)
 	}
-	sub.Subscribers = append(sub.Subscribers, chatId.ID)
 	_, err := updateSubscription(sub)
 	if err != nil {
 		response = err.Error()
@@ -121,7 +134,11 @@ func removeMessage(bot *telego.Bot, message telego.Message) {
 	}
 	index := slices.Index(sub.Subscribers, chatId.ID)
 	sub.Subscribers = append(sub.Subscribers[:index], sub.Subscribers[index+1:]...)
-	_, err = updateSubscription(sub)
+	if len(sub.Subscribers) == 0 {
+		_, err = deleteSubscription(sub.Url)
+	} else {
+		_, err = updateSubscription(sub)
+	}
 	if err != nil {
 		response = err.Error()
 		return

@@ -38,6 +38,10 @@ func updateSubscription(sub Subscription) (*mongo.UpdateResult, error) {
 	return subscriptions.UpdateOne(context.Background(), bson.M{"url": sub.Url}, bson.M{"$set": sub}, options.Update().SetUpsert(true))
 }
 
+func deleteSubscription(url string) (*mongo.DeleteResult, error) {
+	return subscriptions.DeleteOne(context.Background(), bson.M{"url": url})
+}
+
 func listSubscriptions(id int64) []Subscription {
 	var subs []Subscription
 	cursor, err := subscriptions.Find(context.Background(), bson.M{"subscribers": id})
