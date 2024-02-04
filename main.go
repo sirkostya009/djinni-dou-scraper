@@ -3,15 +3,16 @@ package main
 import (
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
+	"os"
 )
 
 func main() {
 	initMongo()
 	bot := createBot()
-	webhookUrl := "/" + bot.Token()
+	webhookEndpoint := "/" + bot.Token()
 
 	err := bot.SetWebhook(&telego.SetWebhookParams{
-		URL: webhookUrl,
+		URL: os.Getenv("WEBHOOK_URL") + webhookEndpoint,
 	})
 	if err != nil {
 		panic(err)
@@ -24,7 +25,7 @@ func main() {
 		}
 	}()
 
-	updates, err := bot.UpdatesViaWebhook(webhookUrl)
+	updates, err := bot.UpdatesViaWebhook(webhookEndpoint)
 	if err != nil {
 		panic(err)
 	}
