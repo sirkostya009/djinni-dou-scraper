@@ -10,6 +10,8 @@ There's also the scraper part, which is a separate service on its own:
 [job-scraper-lambda](https://github.com/sirkostya009/job-scraper-lambda).
 
 ### How to run:
-1. Make sure you have `TELEGRAM_BOT_TOKEN` environment variable set. And `MONGO_URL`, but if you don't, it will default
-to `mongodb://localhost:27017`.
-2. After that just run `go run .`
+1. Make sure you have `TELEGRAM_BOT_TOKEN`, `PORT`, `WEBHOOK_URL` and `MONGO_URL` environment variables set. With
+`MONGO_URL` defaulting to `mongodb://localhost:27017` if not set.
+2. `WEBHOOK_URL` is the domain where the bot is hosted. If it's localhost you're running at make sure you got them
+certificates installed, they can be self-singed.
+3. After that just run `go run .`
