@@ -62,7 +62,7 @@ func cancelHandler(bot *telego.Bot, message telego.Message) {
 		responses = append(responses, "Removal cancelled")
 	}
 	for _, response := range responses {
-		_, _ = bot.SendMessage(&telego.SendMessageParams{
+		bot.SendMessage(&telego.SendMessageParams{
 			ChatID: message.Chat.ChatID(),
 			Text:   response,
 		})
@@ -156,7 +156,7 @@ func addHandler(bot *telego.Bot, message telego.Message) {
 		response = "Sure, let's add another subscription, just drop the link here!"
 		addCommand = append(addCommand, message.Chat.ID)
 	}
-	_, _ = bot.SendMessage(&telego.SendMessageParams{
+	bot.SendMessage(&telego.SendMessageParams{
 		ChatID: message.Chat.ChatID(),
 		Text:   response,
 	})
@@ -167,7 +167,7 @@ func removeHandler(bot *telego.Bot, message telego.Message) {
 	if yuh {
 		removeCommand = append(removeCommand, message.Chat.ID)
 	}
-	_, _ = bot.SendMessage(&telego.SendMessageParams{
+	bot.SendMessage(&telego.SendMessageParams{
 		ChatID: message.Chat.ChatID(),
 		Text:   response,
 	})
@@ -175,8 +175,15 @@ func removeHandler(bot *telego.Bot, message telego.Message) {
 
 func listHandler(bot *telego.Bot, message telego.Message) {
 	response, _ := listIntoString(message.Chat.ID, "List of active subscriptions:")
-	_, _ = bot.SendMessage(&telego.SendMessageParams{
+	bot.SendMessage(&telego.SendMessageParams{
 		ChatID: message.Chat.ChatID(),
 		Text:   response,
 	})
+}
+
+func stopHandler(bot *telego.Bot, update telego.Update) {
+	err := deleteSubscriptionsByChatId(update.Message.Chat.ID)
+	if err != nil {
+		bot.Logger().Errorf("Failed to delete subscriptions: %v", err)
+	}
 }

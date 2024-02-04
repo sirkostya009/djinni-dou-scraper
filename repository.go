@@ -59,3 +59,18 @@ func listSubscriptions(id int64) []Subscription {
 	}
 	return subs
 }
+
+func deleteSubscriptionsByChatId(id int64) error {
+	_, err := subscriptions.UpdateMany(context.Background(),
+		bson.M{},
+		bson.M{
+			"$pull": bson.M{
+				"subscribers": bson.M{
+					"$in": []int64{id},
+				},
+			},
+		},
+	)
+	_, err = subscriptions.DeleteMany(context.Background(), bson.M{"subscribers": bson.M{"$size": 0}})
+	return err
+}
