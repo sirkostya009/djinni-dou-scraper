@@ -34,7 +34,7 @@ func main() {
 	bh.HandleMessage(addHandler, th.CommandEqual("add"))
 	bh.HandleMessage(removeHandler, th.CommandEqual("remove"))
 	bh.HandleMessage(listHandler, th.CommandEqual("list"))
-	bh.Handle(stopHandler, th.AnyMyChatMember())
+	bh.HandleMyChatMemberUpdated(stopHandler)
 
 	go bh.Start()
 	defer bh.Stop()
