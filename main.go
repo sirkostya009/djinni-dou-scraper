@@ -1,16 +1,38 @@
 package main
 
-import th "github.com/mymmrac/telego/telegohandler"
+import (
+	"github.com/mymmrac/telego"
+	th "github.com/mymmrac/telego/telegohandler"
+	"os"
+)
 
 func main() {
 	initMongo()
 	bot := createBot()
+	webhookUrl := os.Getenv("WEBHOOK_URL") + "/" + bot.Token()
 
-	updates, err := bot.UpdatesViaLongPolling(nil)
+	err := bot.SetWebhook(&telego.SetWebhookParams{
+		URL: webhookUrl,
+	})
 	if err != nil {
 		panic(err)
 	}
-	defer bot.StopLongPolling()
+
+	go func() {
+		err = bot.StartWebhook(":443")
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	updates, err := bot.UpdatesViaWebhook(webhookUrl)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		_ = bot.StopWebhook()
+		_ = bot.DeleteWebhook(&telego.DeleteWebhookParams{})
+	}()
 
 	bh, err := th.NewBotHandler(bot, updates)
 	if err != nil {
