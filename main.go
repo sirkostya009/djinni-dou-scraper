@@ -8,7 +8,7 @@ import (
 
 func main() {
 	initMongo()
-	bot := createBot()
+	bot := createBot(telego.WithDefaultDebugLogger())
 	webhookEndpoint := "/" + bot.Token()
 
 	err := bot.SetWebhook(&telego.SetWebhookParams{

@@ -33,8 +33,8 @@ func listIntoString(id int64, str string) (string, bool) {
 	}
 }
 
-func createBot() *telego.Bot {
-	bot, err := telego.NewBot(os.Getenv("TELEGRAM_BOT_TOKEN"))
+func createBot(opts ...telego.BotOption) *telego.Bot {
+	bot, err := telego.NewBot(os.Getenv("TELEGRAM_BOT_TOKEN"), opts...)
 	if err != nil {
 		panic(err)
 	}
