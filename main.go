@@ -18,21 +18,10 @@ func main() {
 		panic(err)
 	}
 
-	go func() {
-		err = bot.StartWebhook("0.0.0.0:443")
-		if err != nil {
-			panic(err)
-		}
-	}()
-
 	updates, err := bot.UpdatesViaWebhook(webhookEndpoint)
 	if err != nil {
 		panic(err)
 	}
-	defer func() {
-		_ = bot.StopWebhook()
-		_ = bot.DeleteWebhook(&telego.DeleteWebhookParams{})
-	}()
 
 	bh, err := th.NewBotHandler(bot, updates)
 	if err != nil {
@@ -46,5 +35,8 @@ func main() {
 	bh.HandleMessage(removeHandler, th.CommandEqual("remove"))
 	bh.HandleMessage(listHandler, th.CommandEqual("list"))
 
-	bh.Start()
+	go bh.Start()
+	_ = bot.StartWebhook("0.0.0.0:443")
+	_ = bot.StopWebhook()
+	_ = bot.DeleteWebhook(&telego.DeleteWebhookParams{})
 }
