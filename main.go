@@ -3,13 +3,12 @@ package main
 import (
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
-	"os"
 )
 
 func main() {
 	initMongo()
 	bot := createBot()
-	webhookUrl := os.Getenv("WEBHOOK_URL") + "/" + bot.Token()
+	webhookUrl := "/" + bot.Token()
 
 	err := bot.SetWebhook(&telego.SetWebhookParams{
 		URL: webhookUrl,
@@ -19,7 +18,7 @@ func main() {
 	}
 
 	go func() {
-		err = bot.StartWebhook(":443")
+		err = bot.StartWebhook("0.0.0.0:443")
 		if err != nil {
 			panic(err)
 		}
