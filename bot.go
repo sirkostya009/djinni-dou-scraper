@@ -85,9 +85,10 @@ func addMessage(bot *telego.Bot, message telego.Message) {
 		response = "Invalid link, but go ahead, try, try again"
 		return
 	}
-	sub, err := findByUrl(url)
+	sub, _ := findByUrl(url)
 	sub.Subscribers = append(sub.Subscribers, chatId.ID)
-	if sub.Url == "" && err == nil {
+	var err error
+	if sub.Url == "" {
 		sub.Url = url
 		var s scraper
 		var selector string
@@ -100,7 +101,7 @@ func addMessage(bot *telego.Bot, message telego.Message) {
 		sub.Data = htmlUlScraper(sub.Url, selector, s)
 
 		_, err = addSubscription(sub)
-	} else if err == nil {
+	} else {
 		_, err = updateSubscription(sub)
 	}
 	if err != nil {
