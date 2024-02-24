@@ -85,27 +85,27 @@ func addMessage(bot *telego.Bot, message telego.Message) {
 		response = "Invalid link, but go ahead, try, try again"
 		return
 	}
-	sub, _ := findByUrl(url)
+	sub, err := findByUrl(url)
 	sub.Subscribers = append(sub.Subscribers, chatId.ID)
-	if sub.Url == "" {
+	if sub.Url == "" && err == nil {
 		sub.Url = url
-		go func(sub *Subscription) {
-			var s scraper
-			var selector string
-			switch {
-			case strings.Contains(url, "djinni.co"):
-				s, selector = djinniCrawler, ".list-unstyled"
-			case strings.Contains(url, "jobs.dou.ua"):
-				s, selector = douCrawler, ".lt"
-			}
-			sub.Data = htmlUlScraper(sub.Url, selector, s)
+		var s scraper
+		var selector string
+		switch {
+		case strings.Contains(url, "djinni.co"):
+			s, selector = djinniCrawler, ".list-unstyled"
+		case strings.Contains(url, "jobs.dou.ua"):
+			s, selector = douCrawler, ".lt"
+		}
+		sub.Data = htmlUlScraper(sub.Url, selector, s)
 
-			_, _ = updateSubscription(*sub)
-		}(&sub)
+		_, err = addSubscription(sub)
+	} else if err == nil {
+		_, err = updateSubscription(sub)
 	}
-	_, err := updateSubscription(sub)
 	if err != nil {
-		response = err.Error()
+		bot.Logger().Errorf("%v", err)
+		response = "Failed to add subscription"
 		return
 	}
 	response = "Subscription added"
@@ -129,6 +129,7 @@ func removeMessage(bot *telego.Bot, message telego.Message) {
 	}
 	sub, err := findByUrl(url)
 	if err != nil {
+		bot.Logger().Errorf("%v", err)
 		response = "Subscription not found"
 		return
 	}
@@ -140,7 +141,8 @@ func removeMessage(bot *telego.Bot, message telego.Message) {
 		_, err = updateSubscription(sub)
 	}
 	if err != nil {
-		response = err.Error()
+		bot.Logger().Errorf("%v", err)
+		response = "Failed to remove subscription"
 		return
 	}
 	response = "Subscription removed"

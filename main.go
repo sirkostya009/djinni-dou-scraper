@@ -7,18 +7,20 @@ import (
 )
 
 func main() {
-	initMongo()
+	initDB()
 	bot := createBot()
 	webhookEndpoint := "/" + bot.Token()
 
-	err := bot.SetWebhook(&telego.SetWebhookParams{
-		URL: "https://" + os.Getenv("WEBHOOK_URL") + webhookEndpoint,
-	})
-	if err != nil {
-		panic(err)
+	var err error
+	var updates <-chan telego.Update
+	if os.Getenv("WEBHOOK_URL") != "" {
+		err = bot.SetWebhook(&telego.SetWebhookParams{
+			URL: "https://" + os.Getenv("WEBHOOK_URL") + webhookEndpoint,
+		})
+		updates, err = bot.UpdatesViaWebhook(webhookEndpoint)
+	} else {
+		updates, err = bot.UpdatesViaLongPolling(nil)
 	}
-
-	updates, err := bot.UpdatesViaWebhook(webhookEndpoint)
 	if err != nil {
 		panic(err)
 	}
@@ -38,7 +40,11 @@ func main() {
 
 	go bh.Start()
 	defer bh.Stop()
-	_ = bot.StartWebhook("0.0.0.0:" + os.Getenv("PORT"))
-	_ = bot.StopWebhook()
-	_ = bot.DeleteWebhook(&telego.DeleteWebhookParams{})
+	if os.Getenv("WEBHOOK_URL") != "" {
+		_ = bot.StartWebhook("0.0.0.0:" + os.Getenv("PORT"))
+		_ = bot.StopWebhook()
+		_ = bot.DeleteWebhook(&telego.DeleteWebhookParams{})
+	} else {
+		select {}
+	}
 }
