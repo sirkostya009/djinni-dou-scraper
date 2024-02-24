@@ -40,6 +40,7 @@ func main() {
 
 	go bh.Start()
 	defer bh.Stop()
+	defer db.Close()
 	if os.Getenv("WEBHOOK_URL") != "" {
 		_ = bot.StartWebhook("0.0.0.0:" + os.Getenv("PORT"))
 		_ = bot.StopWebhook()
