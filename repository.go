@@ -54,6 +54,7 @@ func listSubscriptions(id int64) []Subscription {
 		}
 		subs = append(subs, sub)
 	}
+	rows.Close()
 	return subs
 }
 
