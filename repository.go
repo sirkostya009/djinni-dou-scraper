@@ -58,6 +58,11 @@ func listSubscriptions(id int64) []Subscription {
 	return subs
 }
 
+func countSubscriptions(id int64) (count int) {
+	_ = db.QueryRow(context.Background(), `select count(*) from subscription where $1 = any(subscribers)`, id).Scan(&count)
+	return
+}
+
 func deleteSubscriptionsByChatId(id int64) error {
 	_, err := db.Exec(context.Background(), `
 		update subscription

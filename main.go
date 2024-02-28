@@ -9,17 +9,15 @@ import (
 func main() {
 	initDB()
 	bot := createBot()
-	webhookEndpoint := "/" + bot.Token()
 
-	var err error
-	var updates <-chan telego.Update
+	updates, err := bot.UpdatesViaLongPolling(nil)
 	if os.Getenv("WEBHOOK_URL") != "" {
+		bot.StopLongPolling()
+		webhookEndpoint := "/" + bot.Token()
 		err = bot.SetWebhook(&telego.SetWebhookParams{
 			URL: "https://" + os.Getenv("WEBHOOK_URL") + webhookEndpoint,
 		})
 		updates, err = bot.UpdatesViaWebhook(webhookEndpoint)
-	} else {
-		updates, err = bot.UpdatesViaLongPolling(nil)
 	}
 	if err != nil {
 		panic(err)
@@ -38,14 +36,25 @@ func main() {
 	bh.HandleMessage(listHandler, th.CommandEqual("list"))
 	bh.HandleMyChatMemberUpdated(stopHandler)
 
-	go bh.Start()
-	defer bh.Stop()
-	defer db.Close()
 	if os.Getenv("WEBHOOK_URL") != "" {
-		_ = bot.StartWebhook("0.0.0.0:" + os.Getenv("PORT"))
-		_ = bot.StopWebhook()
-		_ = bot.DeleteWebhook(&telego.DeleteWebhookParams{})
-	} else {
-		select {}
+		go func() {
+			err = bot.StartWebhook("0.0.0.0:" + os.Getenv("PORT"))
+			if err != nil {
+				panic(err)
+			}
+		}()
+		defer func() {
+			err = bot.StopWebhook()
+			if err != nil {
+				bot.Logger().Errorf("Error stopping webhook: %v", err)
+			}
+		}()
+		defer func() {
+			err = bot.DeleteWebhook(&telego.DeleteWebhookParams{})
+			if err != nil {
+				bot.Logger().Errorf("Error deleting webhook: %v", err)
+			}
+		}()
 	}
+	bh.Start()
 }

@@ -153,7 +153,7 @@ func removeMessage(bot *telego.Bot, message telego.Message) {
 
 func addHandler(bot *telego.Bot, message telego.Message) {
 	var response string
-	if subs := listSubscriptions(message.Chat.ID); len(subs) >= 2 {
+	if countSubscriptions(message.Chat.ID) >= 2 {
 		response = "Subscription limit reached"
 	} else {
 		response = "Sure, let's add another subscription, just drop the link here!"
