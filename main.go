@@ -10,7 +10,8 @@ func main() {
 	initDB()
 	bot := createBot()
 
-	updates, err := bot.UpdatesViaLongPolling(nil)
+	var updates <-chan telego.Update
+	var err error
 	if os.Getenv("WEBHOOK_URL") != "" {
 		bot.StopLongPolling()
 		webhookEndpoint := "/" + bot.Token()
@@ -18,6 +19,16 @@ func main() {
 			URL: "https://" + os.Getenv("WEBHOOK_URL") + webhookEndpoint,
 		})
 		updates, err = bot.UpdatesViaWebhook(webhookEndpoint)
+	} else {
+		err = bot.StopWebhook()
+		if err != nil {
+			bot.Logger().Errorf("Error stopping webhook: %v", err)
+		}
+		err = bot.DeleteWebhook(&telego.DeleteWebhookParams{})
+		if err != nil {
+			bot.Logger().Errorf("Error deleting webhook: %v", err)
+		}
+		updates, err = bot.UpdatesViaLongPolling(nil)
 	}
 	if err != nil {
 		panic(err)
@@ -41,18 +52,6 @@ func main() {
 			err = bot.StartWebhook("0.0.0.0:" + os.Getenv("PORT"))
 			if err != nil {
 				panic(err)
-			}
-		}()
-		defer func() {
-			err = bot.StopWebhook()
-			if err != nil {
-				bot.Logger().Errorf("Error stopping webhook: %v", err)
-			}
-		}()
-		defer func() {
-			err = bot.DeleteWebhook(&telego.DeleteWebhookParams{})
-			if err != nil {
-				bot.Logger().Errorf("Error deleting webhook: %v", err)
 			}
 		}()
 	}
