@@ -2,63 +2,38 @@ package main
 
 import (
 	"fmt"
+	"github.com/gocolly/colly"
 	"github.com/mymmrac/telego"
-	"os"
 	"regexp"
 	"slices"
 	"strings"
 )
 
-var (
-	addCommand    []int64
-	removeCommand []int64
-)
+var adding []int64
+var removing []int64
 
 func isAdding(update telego.Update) bool {
-	return slices.Contains(addCommand, update.Message.Chat.ID)
+	return slices.Contains(adding, update.Message.Chat.ID)
 }
 
 func isRemoving(update telego.Update) bool {
-	return slices.Contains(removeCommand, update.Message.Chat.ID)
-}
-
-func listIntoString(id int64, str string) (string, bool) {
-	if subs := listSubscriptions(id); subs == nil {
-		return "No active subscriptions", false
-	} else {
-		urls := make([]string, len(subs))
-		for i, sub := range subs {
-			urls[i] = sub.Url
-		}
-		return fmt.Sprintf("%s\n%s", str, strings.Join(urls, "\n\n")), true
-	}
-}
-
-func createBot(opts ...telego.BotOption) *telego.Bot {
-	bot, err := telego.NewBot(os.Getenv("TELEGRAM_BOT_TOKEN"), opts...)
-	if err != nil {
-		panic(err)
-	}
-
-	return bot
+	return slices.Contains(removing, update.Message.Chat.ID)
 }
 
 func cancelHandler(bot *telego.Bot, message telego.Message) {
-	var responses []string
-	addI := slices.Index(addCommand, message.Chat.ID)
-	if addI != -1 {
-		addCommand = append(addCommand[:addI], addCommand[addI+1:]...)
-		responses = append(responses, "Addition cancelled")
-	}
-	removeI := slices.Index(removeCommand, message.Chat.ID)
-	if removeI != -1 {
-		removeCommand = append(removeCommand[:removeI], removeCommand[removeI+1:]...)
-		responses = append(responses, "Removal cancelled")
-	}
-	for _, response := range responses {
-		bot.SendMessage(&telego.SendMessageParams{
+	if i := slices.Index(adding, message.Chat.ID); i != -1 {
+		adding = append(adding[:i], adding[i+1:]...)
+		go bot.SendMessage(&telego.SendMessageParams{
 			ChatID: message.Chat.ChatID(),
-			Text:   response,
+			Text:   "Addition cancelled",
+		})
+	}
+
+	if i := slices.Index(removing, message.Chat.ID); i != -1 {
+		removing = append(removing[:i], removing[i+1:]...)
+		go bot.SendMessage(&telego.SendMessageParams{
+			ChatID: message.Chat.ChatID(),
+			Text:   "Removal cancelled",
 		})
 	}
 }
@@ -95,16 +70,27 @@ func addMessage(bot *telego.Bot, message telego.Message) {
 	}
 
 	defer func() {
-		i := slices.Index(addCommand, message.Chat.ID)
-		addCommand = append(addCommand[:i], addCommand[i+1:]...)
+		i := slices.Index(adding, message.Chat.ID)
+		adding = append(adding[:i], adding[i+1:]...)
 	}()
 
-	sub, _ := findByUrl(message.Text)
+	sub, err := findByUrl(message.Text)
+	if slices.Contains(sub.Subscribers, chatId.ID) {
+		response = "Already subscribed"
+		return
+	}
 	sub.Subscribers = append(sub.Subscribers, chatId.ID)
-	var err error
-	if sub.Url == "" {
+	if err != nil {
 		sub.Url = message.Text
-		sub.Data = hrefScraper(sub.Url, selector, baseUrl)
+		c := colly.NewCollector()
+		c.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0"
+		c.OnHTML(selector, func(e *colly.HTMLElement) {
+			sub.Data = append(sub.Data, baseUrl+e.Attr("href"))
+		})
+		err = c.Visit(sub.Url)
+		if err != nil {
+			fmt.Printf("Failed to scrape %s %v\n", err, sub.Url)
+		}
 		_, err = addSubscription(sub)
 	} else {
 		_, err = updateSubscription(sub)
@@ -137,8 +123,8 @@ func removeMessage(bot *telego.Bot, message telego.Message) {
 	}
 
 	defer func() {
-		i := slices.Index(removeCommand, message.Chat.ID)
-		removeCommand = append(removeCommand[:i], removeCommand[i+1:]...)
+		i := slices.Index(removing, message.Chat.ID)
+		removing = append(removing[:i], removing[i+1:]...)
 	}()
 
 	sub, err := findByUrl(message.Text)
@@ -164,13 +150,18 @@ func removeMessage(bot *telego.Bot, message telego.Message) {
 	response = "Subscription removed"
 }
 
+const maxSubscriptions = 3
+
 func addHandler(bot *telego.Bot, message telego.Message) {
 	var response string
-	if countSubscriptions(message.Chat.ID) >= 3 {
+	if count, err := countSubscriptions(message.Chat.ID); err != nil {
+		bot.Logger().Errorf("%v", err)
+		response = "Cannot add subscriptions at this time"
+	} else if count >= maxSubscriptions {
 		response = "Subscription limit reached"
 	} else {
 		response = "Sure, let's add another subscription, just drop the link here!"
-		addCommand = append(addCommand, message.Chat.ID)
+		adding = append(adding, message.Chat.ID)
 	}
 	bot.SendMessage(&telego.SendMessageParams{
 		ChatID: message.Chat.ChatID(),
@@ -178,10 +169,22 @@ func addHandler(bot *telego.Bot, message telego.Message) {
 	})
 }
 
+func listIntoString(id int64, str string) (string, bool) {
+	if subs := listSubscriptions(id); subs != nil {
+		urls := make([]string, len(subs))
+		for i, sub := range subs {
+			urls[i] = sub.Url
+		}
+		return fmt.Sprintf("%s\n\n%s", str, strings.Join(urls, "\n\n")), true
+	} else {
+		return "No active subscriptions", false
+	}
+}
+
 func removeHandler(bot *telego.Bot, message telego.Message) {
-	response, yuh := listIntoString(message.Chat.ID, "Sure, what subscriptions would you like to remove?")
-	if yuh {
-		removeCommand = append(removeCommand, message.Chat.ID)
+	response, notEmpty := listIntoString(message.Chat.ID, "Sure, what subscriptions would you like to remove?")
+	if notEmpty {
+		removing = append(removing, message.Chat.ID)
 	}
 	bot.SendMessage(&telego.SendMessageParams{
 		ChatID: message.Chat.ChatID(),
