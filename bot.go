@@ -69,16 +69,16 @@ func addMessage(bot *telego.Bot, message telego.Message) {
 		return
 	}
 
-	defer func() {
-		i := slices.Index(adding, message.Chat.ID)
-		adding = append(adding[:i], adding[i+1:]...)
-	}()
-
 	sub, err := findByUrl(message.Text)
 	if slices.Contains(sub.Subscribers, chatId.ID) {
 		response = "Already subscribed"
 		return
 	}
+	defer func() {
+		i := slices.Index(adding, message.Chat.ID)
+		adding = append(adding[:i], adding[i+1:]...)
+	}()
+
 	sub.Subscribers = append(sub.Subscribers, chatId.ID)
 	if err != nil {
 		sub.Url = message.Text
