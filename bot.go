@@ -89,7 +89,7 @@ func addMessage(bot *telego.Bot, message telego.Message) {
 		})
 		err = c.Visit(sub.Url)
 		if err != nil {
-			fmt.Printf("Failed to scrape %s %v\n", err, sub.Url)
+			bot.Logger().Errorf("Failed to scrape %s %v\n", err, sub.Url)
 		}
 		_, err = addSubscription(sub)
 	} else {
