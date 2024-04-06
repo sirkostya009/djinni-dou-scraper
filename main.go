@@ -15,10 +15,10 @@ func main() {
 	}
 
 	var updates <-chan telego.Update
-	if os.Getenv("WEBHOOK_URL") != "" {
+	if url := os.Getenv("WEBHOOK_URL"); url != "" {
 		webhookEndpoint := "/" + bot.Token()
 		err = bot.SetWebhook(&telego.SetWebhookParams{
-			URL: "https://" + os.Getenv("WEBHOOK_URL") + webhookEndpoint,
+			URL: "https://" + url + webhookEndpoint,
 		})
 		if err != nil {
 			panic(err)
