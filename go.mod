@@ -1,6 +1,6 @@
 module djinni-scraper
 
-go 1.21
+go 1.22
 
 require (
 	github.com/gocolly/colly v1.2.0

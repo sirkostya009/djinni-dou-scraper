@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/mymmrac/telego"
+	tg "github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	"os"
 )
@@ -9,15 +9,15 @@ import (
 func main() {
 	defer db.Close()
 
-	bot, err := telego.NewBot(os.Getenv("TELEGRAM_BOT_TOKEN"))
+	bot, err := tg.NewBot(os.Getenv("TELEGRAM_BOT_TOKEN"))
 	if err != nil {
 		panic(err)
 	}
 
-	var updates <-chan telego.Update
+	var updates <-chan tg.Update
 	if url := os.Getenv("WEBHOOK_URL"); url != "" {
 		webhookEndpoint := "/" + bot.Token()
-		err = bot.SetWebhook(&telego.SetWebhookParams{
+		err = bot.SetWebhook(&tg.SetWebhookParams{
 			URL: "https://" + url + webhookEndpoint,
 		})
 		if err != nil {
@@ -31,7 +31,7 @@ func main() {
 			}
 		}()
 	} else {
-		err = bot.DeleteWebhook(&telego.DeleteWebhookParams{})
+		err = bot.DeleteWebhook(&tg.DeleteWebhookParams{})
 		if err != nil {
 			bot.Logger().Errorf("Error deleting webhook: %v", err)
 		}
@@ -46,13 +46,14 @@ func main() {
 		panic(err)
 	}
 
-	bh.HandleMessage(cancelHandler, th.CommandEqual("cancel"))
-	bh.HandleMessage(addMessage, isAdding)
-	bh.HandleMessage(removeMessage, isRemoving)
-	bh.HandleMessage(addHandler, th.CommandEqual("add"))
-	bh.HandleMessage(removeHandler, th.CommandEqual("remove"))
-	bh.HandleMessage(listHandler, th.CommandEqual("list"))
-	bh.HandleMyChatMemberUpdated(stopHandler)
+	h := &Handlers{}
+	bh.HandleMessage(h.CancelHandler, th.CommandEqual("cancel"))
+	bh.HandleMessage(h.AddMessage, h.IsAdding)
+	bh.HandleMessage(h.RemoveMessage, h.IsRemoving)
+	bh.HandleMessage(h.AddHandler, th.CommandEqual("add"))
+	bh.HandleMessage(h.RemoveHandler, th.CommandEqual("remove"))
+	bh.HandleMessage(h.ListHandler, th.CommandEqual("list"))
+	bh.HandleMyChatMemberUpdated(h.StopHandler)
 
 	bh.Start()
 }
